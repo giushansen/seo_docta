@@ -26,7 +26,7 @@ class PageSeo
     @stop_words = get_stop_words_list("stop_words.txt")
   end
 
-  def run_report(media)
+  def run_report(media = 'console')
     ##
     ## Assemble Report & Print it
     ##
@@ -428,4 +428,4 @@ class PageSeo
 end
 
 p = PageSeo.new(ARGV[0])
-p.run_report('console')
+p.run_report(ARGV[1])
