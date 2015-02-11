@@ -32,15 +32,15 @@ class PageSeo
     ##
     puts "Starting SEO report ..."
 
-    if media == 'console'
-      @output = ::Kernel
-      seo_elements_report
-    else media == 'file'
+    if media == 'file'
       filename = "reports/#{@uri.host}#{@uri.path.gsub('/', '_')}.txt"
       @output = File.open(filename, 'w')
         seo_elements_report
       @output.close
       puts "Report file written at #{filename}"
+    else
+      @output = ::Kernel
+      seo_elements_report
     end
   end
 
@@ -59,10 +59,10 @@ class PageSeo
   def url_report
     analyze 'U R L' do |elements, report|
       elements << @url
-      report[:bad] << 'Should not have dynamic segment with digits' if @url =~ /\/\d+\//  # post/25/
-      report[:bad] << "Should not have encoded sign '%' with digits" if @url =~ /%\d+/  # %23
-      report[:bad] << 'Should have underscore instead of dash'  if @url =~ /_/  # _
-      report[:info] << 'URL contains only recommended characters' if report[:bad].empty?
+      report[:error] << 'Should not have dynamic segment with digits' if @url =~ /\/\d+\//  # post/25/
+      report[:error] << "Should not have encoded sign '%' with digits" if @url =~ /%\d+/  # %23
+      report[:error] << 'Should have underscore instead of dash'  if @url =~ /_/  # _
+      report[:info] << 'URL contains only recommended characters' if report[:error].empty?
       #TODO Check occurences of the keyword
     end
   end
@@ -71,11 +71,11 @@ class PageSeo
     analyze 'T I T L E' do |elements, report|
       title = @doc.xpath('//title')
       if title.size < 1
-        report[:bad] << 'Should have a title.'
+        report[:error] << 'Should have a title.'
         elements << 'NO TITLE'
         next
       elsif title.size > 1
-        report[:bad] << 'Should not be more than one title.'
+        report[:error] << 'Should not be more than one title.'
         elements << 'MULTIPLE TITLE'
         next
       end
@@ -83,7 +83,7 @@ class PageSeo
       if @title.size > 65
         report[:warning] << "Should not have more than 65 Characters. There is '#{@title.size}'. Except if you aim multiple keywords within this page, reduce the size."
       else
-        report[:info] << "The title has a length of: #{@title.size} characters (65 Max recommended)." if ( report[:bad].empty? &&  report[:warning].empty?)
+        report[:info] << "The title has a length of: #{@title.size} characters (65 Max recommended)." if ( report[:error].empty? &&  report[:warning].empty?)
       end
       #TODO Check keyword at beginning
       elements << @title
@@ -100,7 +100,7 @@ class PageSeo
          report[:info] << "These are the Meta Keywords: #{meta_keyword}."
       end
       if meta_description.size < 1
-        report[:bad] << "Should have Meta Description except if you are targeting multiple keywords."
+        report[:error] << "Should have Meta Description except if you are targeting multiple keywords."
         elements << 'NO META DESCRIPTION'
         next
       end
@@ -118,7 +118,7 @@ class PageSeo
     analyze 'H 1' do |elements, report|
       h1 = @doc.xpath('//h1')
       if h1.size < 1
-        report[:bad] << 'Should have at least one H1.'
+        report[:error] << 'Should have at least one H1.'
         elements << 'NO H1'
         next
       end
@@ -126,7 +126,7 @@ class PageSeo
       h1.each do |h|
         @h1 << h.content
       end
-      report[:info] << "There is '#{h1.count}' H1 tag(s)." if report[:bad].empty?
+      report[:info] << "There is '#{h1.count}' H1 tag(s)." if report[:error].empty?
       #TODO Check keyword in h1 especially first
       elements.concat @h1
     end
@@ -144,7 +144,7 @@ class PageSeo
       h2.each do |h|
         @h2 << h.content
       end
-      report[:info] << "You have #{h2.count} H2 tag(s)." if report[:bad].empty?
+      report[:info] << "You have #{h2.count} H2 tag(s)." if report[:error].empty?
       #TODO Check keyword in h2
       elements.concat @h2
     end
@@ -156,7 +156,7 @@ class PageSeo
       if images.size < 3
         report[:warning] << 'It would be nice to have 3 images or more.'
       elsif images.size < 1
-        report[:bad] << 'Should have at least 1 image.'
+        report[:error] << 'Should have at least 1 image.'
         elements << 'NO IMAGES'
         next
       end
@@ -168,7 +168,7 @@ class PageSeo
 
         hidden_image = !!( image.attribute("style") && image.attribute("style").content.include?('display:none') )
         unless ( image.attribute("alt") && !image.attribute("alt").content.empty? )
-          report[:bad] << "Should have an alternative text: '#{source}'"
+          report[:error] << "Should have an alternative text: '#{source}'"
           next
         end
         @images << [
@@ -177,7 +177,7 @@ class PageSeo
           #TODO MultiThreading img_size[0] * img_size[1]
         ]
       end
-      report[:info] << "You have '#{images.size}' images and they all have alternate texts." if ( report[:bad].empty? &&  report[:warning].empty? )
+      report[:info] << "You have '#{images.size}' images and they all have alternate texts." if ( report[:error].empty? &&  report[:warning].empty? )
       #@images.sort_by{|img| img[2]}
       #TODO Check keyword in images
       elements.concat @images
@@ -189,7 +189,7 @@ class PageSeo
       @doc.search('script,noscript').remove
       content = @doc.xpath('//text()').map(&:content).delete_if{|x| x !~ /\w/}
       if content.size < 1
-        report[:bad] << 'There is no content.'
+        report[:error] << 'There is no content.'
         elements << 'NO CONTENT'
         next
       end
@@ -208,11 +208,11 @@ class PageSeo
       @content << ['Paragraphs word count: ', paragraphs_word_count]
       @content << ['Top 15 used words', top_15]
       if paragraphs_word_count < 300
-        report[:bad] << "Should have at least 300 words of content on the page paragraphs. (500 words recommended)"
+        report[:error] << "Should have at least 300 words of content on the page paragraphs. (500 words recommended)"
       elsif paragraphs_word_count < 500
         report[:warning] << "It would be nicer to have over 500 words of content on the page paragraphs."
       end
-      report[:info] << "There is over 500 words of content on the page paragraphs." if ( report[:bad].empty? &&  report[:warning].empty? )
+      report[:info] << "There is over 500 words of content on the page paragraphs." if ( report[:error].empty? &&  report[:warning].empty? )
       #TODO Check keyword in content
       elements.concat @content
     end
@@ -259,7 +259,7 @@ class PageSeo
     analyze 'L I N K' do |elements, report|
       links = @doc.xpath('//a')
       if links.size < 2
-        report[:bad] << 'Should have at least a couple of links pointing to an internal page.'
+        report[:error] << 'Should have at least a couple of links pointing to an internal page.'
         elements << 'NO LINKS'
         next
       end
@@ -272,7 +272,7 @@ class PageSeo
       internal_links_footer_count = 0
       links.each do |a|
         if a.attribute("href").nil?
-          report[:bad] << "This anchor text should have have a URL to point to. Do not use Flash or JS but text link for changing page instead of: \n #{a} \n"
+          report[:error] << "This anchor text should have have a URL to point to. Do not use Flash or JS but text link for changing page instead of: \n #{a} \n"
           next
         else
           url = a.attribute("href").content.strip
@@ -383,7 +383,7 @@ class PageSeo
   # Setup reporting structure Hash
   #
   def analyze(name)
-    report = {bad: [], warning: [], info: [], good: []}
+    report = {error: [], warning: [], info: [], good: []}
     elements = []
     yield(elements, report)
     display(name, elements, report)
