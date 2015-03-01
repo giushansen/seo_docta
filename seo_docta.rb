@@ -5,7 +5,7 @@ require 'pry-byebug'
 require 'fastimage'
 
 class PageSeo
-  CITY_NAME = 'perth'
+  CITY_NAME = 'singapore'
   MAX_LENGTH_ANCHOR_TEXT = 4
 
   def initialize(url)
@@ -61,7 +61,7 @@ class PageSeo
       elements << @url
       report[:error] << 'Should not have dynamic segment with digits' if @url =~ /\/\d+\//  # post/25/
       report[:error] << "Should not have encoded sign '%' with digits" if @url =~ /%\d+/  # %23
-      report[:error] << 'Should have underscore instead of dash'  if @url =~ /_/  # _
+      report[:error] << 'Should have dash instead of underscore'  if @url =~ /_/  # _
       report[:info] << 'URL contains only recommended characters' if report[:error].empty?
       #TODO Check occurences of the keyword
     end
